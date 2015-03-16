@@ -4,6 +4,7 @@ import re
 import pprint
 import datetime
 from calendar import monthrange
+import os
 
 
 class Bot():
@@ -241,8 +242,8 @@ class Bot():
 
 
 def get_bot():
-    zulip_username = 'zulip-pinging-bot@students.hackerschool.com'
-    zulip_api_key = '4KlIobAKk90CVjSVsQvU8lpsG1ZFDYXc'
+    zulip_username = os.environ['ZULIP_USR']
+    zulip_api_key = os.environ['ZULIP_API']
     key_word = 'PingingBot'
 
     subscribed_streams = []
