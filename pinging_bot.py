@@ -62,23 +62,11 @@ class Bot():
 
         first_word = msg['content'].split()[0].lower().strip()
         if self.key_word == first_word:
-            print "\n\n----------------Time-----------------\n\n"
             time = self.parse_time(msg["content"])
-            print time
-
-            print "\n\n----------------Msgs-----------------\n\n"
             msgs = self.get_msgs(
                 time, msg["display_recipient"], msg["subject"])
-            # print msgs
-
-            print "\n\n----------------Participants-----------------\n\n"
             participants = self.get_participants(msgs)
-            print participants
-
-            print "\n\n----------------PingMsg-----------------\n\n"
             ping_msg = self.ping_participants_msg(msg, participants, time)
-            print ping_msg
-
             ping_msg["to"] = ping_msg["display_recipient"]
             self.client.send_message(ping_msg)
 
@@ -94,12 +82,10 @@ class Bot():
             # get num and time frequency
             time_str = msg_content_elems[1].lower().strip()
             result = re.match("([0-9]+)([a-z])", time_str)
-            # print time_str
             num = int(result.groups()[0])
             freq = result.groups()[1]
 
             delta = cls._get_timedelta(num, freq)
-            # print delta
 
             if delta > delta_default:
                 delta = delta_default
@@ -123,14 +109,12 @@ class Bot():
 
             if freq != "m":
                 delta_key = freq_to_delta[freq]
-                # print delta_key, num
                 delta_dict = {delta_key: num}
 
             else:
                 eq_days = cls._months_to_days(num)
                 delta_dict = {"days": eq_days}
 
-            # print delta_dict
             delta = datetime.timedelta(**delta_dict)
 
         return delta
@@ -156,39 +140,29 @@ class Bot():
         return days
 
     def get_msgs(self, time, stream, subject):
-        print time, stream, subject
 
         anchor = 18446744073709551615
         earliest = datetime.datetime.today().date()
 
         messages = []
         while earliest > time:
-            # print earliest, time, stream, subject
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
             timestamp = msgs_chunk[0]["timestamp"]
             earliest = datetime.datetime.fromtimestamp(timestamp).date()
 
             anchor = msgs_chunk[0]["id"]
-            print "here -3"
-            print "we are printing msgs chunk"
-            print len(msgs_chunk)
-            # print msgs_chunk
             msgs = []
             for msg in msgs_chunk:
-                # print "adding msgs from chunk..."
                 msg_time = datetime.datetime.fromtimestamp(
                     msg["timestamp"]).date()
                 if msg["subject"] == subject and msg_time > time:
                     msgs.append(msg)
 
             messages.extend(msgs)
-            print "here!"
 
-        print "ending!"
         return messages
 
     def _get_msgs_chunk(self, chunk_size, stream, anchor=18446744073709551615):
-        print chunk_size, stream, anchor
 
         payload = {"anchor": anchor,
                    "narrow": '[{"operator":"stream","operand":"' + str(stream) + '"}]',
@@ -201,7 +175,6 @@ class Bot():
                                 auth=(self.username, self.api_key))
 
         json_res = response.json()
-        # print json_res
         messages = json_res["messages"]
 
         return messages
