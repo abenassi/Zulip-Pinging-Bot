@@ -2,14 +2,14 @@ import unittest
 import nose
 import datetime
 import json
-from pinging_bot import get_bot
+from pinging_bot import Bot
 
 
 class BotTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.new_bot = get_bot()
+        cls.new_bot = Bot
 
     @classmethod
     def tearDownClass(cls):
@@ -51,8 +51,8 @@ class BotTest(unittest.TestCase):
         test_msgs = data["msgs"]
 
         participants = self.new_bot.get_participants(test_msgs)
-        participants_exp = ["@**Name1**", "@**Name2**", "@**Name3**",
-                            "@**Name4**", "@**Name5**"]
+        participants_exp = set(["@**Name1**", "@**Name2**", "@**Name3**",
+                                "@**Name4**", "@**Name5**"])
 
         self.assertEqual(participants, participants_exp)
 

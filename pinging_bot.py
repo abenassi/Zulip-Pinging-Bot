@@ -1,7 +1,6 @@
 import zulip
 import requests
 import re
-import pprint
 import datetime
 from calendar import monthrange
 import os
@@ -70,7 +69,7 @@ class Bot():
             print "\n\n----------------Msgs-----------------\n\n"
             msgs = self.get_msgs(
                 time, msg["display_recipient"], msg["subject"])
-             #print msgs
+            # print msgs
 
             print "\n\n----------------Participants-----------------\n\n"
             participants = self.get_participants(msgs)
@@ -83,10 +82,11 @@ class Bot():
             ping_msg["to"] = ping_msg["display_recipient"]
             self.client.send_message(ping_msg)
 
-    def parse_time(self, msg_content):
+    @classmethod
+    def parse_time(cls, msg_content):
         msg_content_elems = msg_content.split()
 
-        delta_default = self._get_timedelta(3, "m")
+        delta_default = cls._get_timedelta(3, "m")
         delta = delta_default
 
         if len(msg_content_elems) > 1:
@@ -98,7 +98,7 @@ class Bot():
             num = int(result.groups()[0])
             freq = result.groups()[1]
 
-            delta = self._get_timedelta(num, freq)
+            delta = cls._get_timedelta(num, freq)
             # print delta
 
             if delta > delta_default:
@@ -109,10 +109,11 @@ class Bot():
 
         return time
 
-    def _get_timedelta(self, num, freq):
+    @classmethod
+    def _get_timedelta(cls, num, freq):
         """Create a timedelta from a number and a frequency."""
 
-        delta = datetime.timedelta(days=self._months_to_days(3))
+        delta = datetime.timedelta(days=cls._months_to_days(3))
 
         freq_to_delta = {"d": "days",
                          "w": "weeks",
@@ -126,7 +127,7 @@ class Bot():
                 delta_dict = {delta_key: num}
 
             else:
-                eq_days = self._months_to_days(num)
+                eq_days = cls._months_to_days(num)
                 delta_dict = {"days": eq_days}
 
             # print delta_dict
@@ -134,7 +135,8 @@ class Bot():
 
         return delta
 
-    def _months_to_days(self, num):
+    @classmethod
+    def _months_to_days(cls, num):
         """Convert a number of months in equivalent days (last 3 months)."""
 
         today = datetime.datetime.date(datetime.datetime.today())
@@ -204,7 +206,8 @@ class Bot():
 
         return messages
 
-    def get_participants(self, msgs):
+    @classmethod
+    def get_participants(cls, msgs):
         """Extract a list of participants from a bunch of messages."""
         participants = ["@**" + msg["sender_full_name"] + "**" for msg in msgs]
         return set(participants)
@@ -226,22 +229,18 @@ class Bot():
 
         self.client.call_on_each_message(lambda msg: self.respond(msg))
 
-    ''' The Customization Part!
-
-    Create a zulip bot under "settings" on zulip.
-    Zulip will give you a username and API key
-    key_word is the text in Zulip you would like the bot to respond to. This
-    may be a single word or a phrase.
-    search_string is what you want the bot to search giphy for.
-    caption may be one of: [] OR 'a single string'
-    OR ['or a list', 'of strings']
-    subscribed_streams is a list of the streams the bot should be active on.
-    An empty list defaults to ALL zulip streams
-
-'''
-
 
 def get_bot():
+    '''Create a Zulip bot
+
+    1. Create a zulip bot under "settings" on zulip.
+    2. Zulip will give you a username and API key
+    3. key_word is the text in Zulip you would like the bot to respond to. This
+    may be a single word or a phrase.
+    4. subscribed_streams is a list of the streams the bot should be active on.
+    An empty list defaults to ALL zulip streams
+    '''
+
     zulip_username = os.environ['ZULIP_USR']
     zulip_api_key = os.environ['ZULIP_API']
     key_word = 'PingingBot'
