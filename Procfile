@@ -1,0 +1,1 @@
+worker: python pinging_bot.py
