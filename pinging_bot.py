@@ -14,7 +14,7 @@ class Bot():
         caption and a randomly selected gif in response to zulip messages.
     '''
 
-    CHUNK_SIZE = 100
+    CHUNK_SIZE = 5000
 
     def __init__(self, zulip_username, zulip_api_key, key_word, short_key_word,
                  subscribed_streams=[]):
@@ -150,7 +150,8 @@ class Bot():
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
-            if not msgs_chunk:
+            # stop asking for messages if less than chunk size were retrieved
+            if not msgs_chunk or len(msgs_chunk) < self.CHUNK_SIZE:
                 break
 
             timestamp = msgs_chunk[0]["timestamp"]
@@ -170,6 +171,8 @@ class Bot():
 
     def _get_msgs_chunk(self, chunk_size, stream, anchor=18446744073709551615):
 
+        print "chunk", chunk_size, "stream", stream, "anchor", anchor
+
         payload = {"anchor": anchor,
                    "narrow": '[{"operator":"stream","operand":"' + str(stream) + '"}]',
                    "num_before": chunk_size,
@@ -180,8 +183,16 @@ class Bot():
                                 params=payload,
                                 auth=(self.username, self.api_key))
 
-        json_res = response.json()
-        messages = json_res["messages"]
+        if response.status_code == 200:
+            json_res = response.json()
+            messages = json_res["messages"]
+
+        else:
+            print response.json()
+            messages = None
+
+        if messages:
+            print "num messages retrieved", len(messages)
 
         return messages
 
