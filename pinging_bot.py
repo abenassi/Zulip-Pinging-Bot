@@ -69,6 +69,7 @@ class Bot():
             participants = self.get_participants(msgs)
             ping_msg = self.ping_participants_msg(msg, participants, time)
             ping_msg["to"] = ping_msg["display_recipient"]
+
             self.client.send_message(ping_msg)
 
     @classmethod
@@ -148,6 +149,10 @@ class Bot():
         messages = []
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
+
+            if not msgs_chunk:
+                break
+
             timestamp = msgs_chunk[0]["timestamp"]
             earliest = datetime.datetime.fromtimestamp(timestamp).date()
 
