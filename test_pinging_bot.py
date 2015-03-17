@@ -56,5 +56,14 @@ class BotTest(unittest.TestCase):
 
         self.assertEqual(participants, participants_exp)
 
+    def test_bot_msg(self):
+
+        msg = {"sender_email": "pinging-bot@students.hackerschool.com"}
+        self.assertTrue(self.new_bot._bot_msg(msg))
+
+        msg = {"sender_email": "someone@gmail.com"}
+        self.assertFalse(self.new_bot._bot_msg(msg))
+
+
 if __name__ == '__main__':
     nose.run(defaultTest=__name__)

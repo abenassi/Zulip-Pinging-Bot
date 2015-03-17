@@ -16,11 +16,12 @@ class Bot():
 
     CHUNK_SIZE = 100
 
-    def __init__(self, zulip_username, zulip_api_key, key_word,
+    def __init__(self, zulip_username, zulip_api_key, key_word, short_key_word,
                  subscribed_streams=[]):
         self.username = zulip_username
         self.api_key = zulip_api_key
         self.key_word = key_word.lower()
+        self.short_key_word = short_key_word.lower()
         self.subscribed_streams = subscribed_streams
         self.client = zulip.Client(zulip_username, zulip_api_key)
         self.subscriptions = self.subscribe_to_streams()
@@ -61,7 +62,7 @@ class Bot():
         '''If key_word in msg, ping participants of the subject.'''
 
         first_word = msg['content'].split()[0].lower().strip()
-        if self.key_word == first_word:
+        if self.key_word == first_word or self.short_key_word == first_word:
             time = self.parse_time(msg["content"])
             msgs = self.get_msgs(
                 time, msg["display_recipient"], msg["subject"])
@@ -182,8 +183,13 @@ class Bot():
     @classmethod
     def get_participants(cls, msgs):
         """Extract a list of participants from a bunch of messages."""
-        participants = ["@**" + msg["sender_full_name"] + "**" for msg in msgs]
+        participants = ["@**" + msg["sender_full_name"] + "**" for msg in msgs
+                        if not cls._bot_msg(msg)]
         return set(participants)
+
+    @classmethod
+    def _bot_msg(cls, msg):
+        return "-bot@students.hackerschool.com" in msg["sender_email"]
 
     def ping_participants_msg(self, msg, participants, time):
 
@@ -217,10 +223,12 @@ def get_bot():
     zulip_username = os.environ['ZULIP_USR']
     zulip_api_key = os.environ['ZULIP_API']
     key_word = 'PingingBot'
+    short_key_word = 'PingBot'
 
     subscribed_streams = []
 
-    new_bot = Bot(zulip_username, zulip_api_key, key_word, subscribed_streams)
+    new_bot = Bot(zulip_username, zulip_api_key, key_word, short_key_word,
+                  subscribed_streams)
 
     return new_bot
 
