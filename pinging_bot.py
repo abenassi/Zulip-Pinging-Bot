@@ -150,9 +150,6 @@ class Bot():
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
-            # stop asking for messages if less than chunk size were retrieved
-            if not msgs_chunk or len(msgs_chunk) < self.CHUNK_SIZE:
-                break
 
             timestamp = msgs_chunk[0]["timestamp"]
             earliest = datetime.datetime.fromtimestamp(timestamp).date()
@@ -166,6 +163,10 @@ class Bot():
                     msgs.append(msg)
 
             messages.extend(msgs)
+
+            # stop asking for messages if less than chunk size were retrieved
+            if not msgs_chunk or len(msgs_chunk) < self.CHUNK_SIZE:
+                break
 
         return messages
 
