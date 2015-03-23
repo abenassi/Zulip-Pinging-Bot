@@ -27,25 +27,28 @@ For using the bot in Zulip you just need to type `PingingBot time_string`. The t
 
 *This will ping all participants in the subject for the last 3 months (the maximum)*
 
-PingingBot
+`PingingBot`
 
 **PingingBot send a message pinging participants**
+
 
 *This will ping all participants in the subject for the last 10 days*
 
-PingingBot 10d
+`PingingBot 10d`
 
 **PingingBot send a message pinging participants**
+
 
 *This will ping all participants in the subject for the last 2 weeks*
 
-PingingBot 2w
+`PingingBot 2w`
 
 **PingingBot send a message pinging participants**
 
+
 *This will ping all participants in the subject for the last 2 months*
 
-PingingBot 2m
+`PingingBot 2m`
 
 **PingingBot send a message pinging participants**
 
