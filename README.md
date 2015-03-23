@@ -29,28 +29,21 @@ For using the bot in Zulip you just need to type `PingingBot time_string`. The t
 
 `PingingBot`
 
-**PingingBot send a message pinging participants**
-
 
 *This will ping all participants in the subject for the last 10 days*
 
 `PingingBot 10d`
-
-**PingingBot send a message pinging participants**
 
 
 *This will ping all participants in the subject for the last 2 weeks*
 
 `PingingBot 2w`
 
-**PingingBot send a message pinging participants**
-
 
 *This will ping all participants in the subject for the last 2 months*
 
 `PingingBot 2m`
 
-**PingingBot send a message pinging participants**
 
 ## Credits
 Thanks to [@midair](https://github.com/midair) for introducing me in the funny art of building Zulip bots and for the base code [Zulip-Voting-Bot](https://github.com/midair/Zulip-Voting-Bot) upon which I started the development of this bot.
