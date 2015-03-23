@@ -83,7 +83,7 @@ class Bot():
 
             # get num and time frequency
             time_str = msg_content_elems[1].lower().strip()
-            result = re.match("([0-9]+)([a-z])", time_str)
+            result = re.match("([0-9]+)([a-z]+)", time_str)
             num = int(result.groups()[0])
             freq = result.groups()[1]
 
@@ -92,8 +92,8 @@ class Bot():
             if delta > delta_default:
                 delta = delta_default
 
-        today = datetime.datetime.today().date()
-        time = today - delta
+        now = datetime.datetime.now()
+        time = now - delta
 
         return time
 
@@ -103,7 +103,10 @@ class Bot():
 
         delta = datetime.timedelta(days=cls._months_to_days(3))
 
-        freq_to_delta = {"d": "days",
+        freq_to_delta = {"s": "seconds",
+                         "min": "minutes",
+                         "h": "hours",
+                         "d": "days",
                          "w": "weeks",
                          "m": "months"}
 
@@ -125,7 +128,7 @@ class Bot():
     def _months_to_days(cls, num):
         """Convert a number of months in equivalent days (last 3 months)."""
 
-        today = datetime.datetime.date(datetime.datetime.today())
+        today = datetime.datetime.now()
         year = today.year
         month = today.month
         days = 0
@@ -144,20 +147,20 @@ class Bot():
     def get_msgs(self, time, stream, subject):
 
         anchor = 18446744073709551615
-        earliest = datetime.datetime.today().date()
+        earliest = datetime.datetime.now()
 
         messages = []
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
             timestamp = msgs_chunk[0]["timestamp"]
-            earliest = datetime.datetime.fromtimestamp(timestamp).date()
+            earliest = datetime.datetime.fromtimestamp(timestamp).now()
 
             anchor = msgs_chunk[0]["id"]
             msgs = []
             for msg in msgs_chunk:
                 msg_time = datetime.datetime.fromtimestamp(
-                    msg["timestamp"]).date()
+                    msg["timestamp"]).now()
                 if msg["subject"] == subject and msg_time > time:
                     msgs.append(msg)
 
@@ -208,10 +211,10 @@ class Bot():
         return "-bot@students.hackerschool.com" in msg["sender_email"]
 
     def ping_participants_msg(self, msg, participants, time):
-
+        t_format = "%m/%d/%y %H:%M:%S"
         msg["content"] = "".join(["Pinging all participants from ",
-                                  time.strftime("%m/%d/%y"), " to ",
-                                  datetime.datetime.now().strftime("%m/%d/%y"),
+                                  time.strftime(t_format), " to ",
+                                  datetime.datetime.now().strftime(t_format),
                                   "\n",
                                   " ".join(participants)])
 
