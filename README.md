@@ -23,7 +23,7 @@ When having the file, load the variables: `source config.sh`.
 
 
 ## Using the bot in Zulip
-For using the bot in Zulip you just need to type `PingingBot time_string`. The time_string is composed with a number and a letter (only `d` (days), `w` (weeks) or `m` (months)). You can ping people that have participated in a conversation up to a maximum of 3 months old or a minimum of 1 day.
+For using the bot in Zulip you just need to type `PingingBot time_string`. The time_string is composed with a number and a letter (only `d` (days), `w` (weeks), `m` (months), `h` (hours), `min` (minutes) and `s` (seconds)). You can ping people that have participated in a conversation up to a maximum of 3 months old or a minimum of 1 second.
 
 *This will ping all participants in the subject for the last 3 months (the maximum)*
 
@@ -43,6 +43,14 @@ For using the bot in Zulip you just need to type `PingingBot time_string`. The t
 *This will ping all participants in the subject for the last 2 months*
 
 `PingingBot 2m`
+
+*This will ping all participants in the subject for the last 3 hours*
+
+`PingingBot 3h`
+
+*This will ping all participants in the subject for the last 30 minutes*
+
+`PingingBot 30min`
 
 
 ## Credits
