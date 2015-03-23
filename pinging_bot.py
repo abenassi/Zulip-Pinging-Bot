@@ -150,7 +150,6 @@ class Bot():
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
-
             timestamp = msgs_chunk[0]["timestamp"]
             earliest = datetime.datetime.fromtimestamp(timestamp).date()
 

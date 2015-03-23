@@ -23,19 +23,29 @@ class BotTest(unittest.TestCase):
         m2 = self.new_bot.parse_time("PingingBot 2m")
         m7 = self.new_bot.parse_time("PingingBot 7m")
         non_valid = self.new_bot.parse_time("PingingBot 2q")
+        min10 = self.new_bot.parse_time("PingingBot 10min")
+        h10 = self.new_bot.parse_time("PingingBot 10h")
+        s300 = self.new_bot.parse_time("PingingBot 300s")
 
-        today = datetime.datetime.today().date()
+        now = datetime.datetime(2015, 3, 18, 17, 10, 14)
 
         # calculate expected results
-        d5_exp = today - datetime.timedelta(days=5)
-        w5_exp = today - datetime.timedelta(weeks=5)
+        d5_exp = now - datetime.timedelta(days=5)
+        w5_exp = now - datetime.timedelta(weeks=5)
 
         days = self.new_bot._months_to_days(2)
-        m2_exp = today - datetime.timedelta(days=days)
+        m2_exp = now - datetime.timedelta(days=days)
+
         days = self.new_bot._months_to_days(3)
-        m7_exp = today - datetime.timedelta(days=days)
+        m7_exp = now - datetime.timedelta(days=days)
+
         days = self.new_bot._months_to_days(3)
-        non_valid_exp = today - datetime.timedelta(days=days)
+        non_valid_exp = now - datetime.timedelta(days=days)
+
+        min10_exp = now - datetime.timedelta(minutes=5)
+        h10_exp = now - datetime.timedelta(weeks=5)
+        s300_exp = now - datetime.timedelta(weeks=5)
+
 
         self.assertEqual(d5, d5_exp)
         self.assertEqual(w5, w5_exp)
