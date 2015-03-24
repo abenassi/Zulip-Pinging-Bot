@@ -66,7 +66,7 @@ class Bot():
             time = self.parse_time(msg["content"])
             msgs = self.get_msgs(
                 time, msg["display_recipient"], msg["subject"])
-            participants = self.get_participants(msgs)
+            participants = self.get_participants(msgs, msg["sender_full_name"])
             ping_msg = self.ping_participants_msg(msg, participants, time)
             ping_msg["to"] = ping_msg["display_recipient"]
 
@@ -200,10 +200,10 @@ class Bot():
         return messages
 
     @classmethod
-    def get_participants(cls, msgs):
+    def get_participants(cls, msgs, issuer):
         """Extract a list of participants from a bunch of messages."""
         participants = ["@**" + msg["sender_full_name"] + "**" for msg in msgs
-                        if not cls._bot_msg(msg)]
+                        if not cls._bot_msg(msg) and not issuer]
         return set(participants)
 
     @classmethod
