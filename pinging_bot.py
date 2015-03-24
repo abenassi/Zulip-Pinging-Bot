@@ -15,6 +15,8 @@ class Bot():
     '''
 
     CHUNK_SIZE = 5000
+    PING_INI = "@**"
+    PING_END = "**"
 
     def __init__(self, zulip_username, zulip_api_key, key_word, short_key_word,
                  subscribed_streams=[]):
@@ -63,14 +65,66 @@ class Bot():
 
         first_word = msg['content'].split()[0].lower().strip()
         if self.key_word == first_word or self.short_key_word == first_word:
+
+            time, num_participants = None, None
             time = self.parse_time(msg["content"])
-            msgs = self.get_msgs(
-                time, msg["display_recipient"], msg["subject"])
-            participants = self.get_participants(msgs, msg["sender_full_name"])
-            ping_msg = self.ping_participants_msg(msg, participants, time)
+            num_participants = self.parse_num_participants(msg["content"])
+
+            if time:
+                msgs = self.get_msgs(
+                    time, msg["display_recipient"], msg["subject"])
+
+                participants = self.get_participants(
+                    msgs, msg["sender_full_name"])
+
+                ping_msg = self.ping_participants_msg(msg, participants, time)
+
+            elif num_participants:
+                participants = self.get_last_participants(
+                    num_participants, msg["display_recipient"],
+                    msg["subject"], msg["sender_full_name"])
+
+                ping_msg = self.ping_last_participants_msg(msg, participants)
+
+            else:
+                return
+
             ping_msg["to"] = ping_msg["display_recipient"]
 
             self.client.send_message(ping_msg)
+
+    def get_last_participants(self, num_particip, stream, subject, issuer):
+
+        anchor = 18446744073709551615
+        earliest = datetime.datetime.now()
+        max_past_time = datetime.datetime.now() - self._get_timedelta(3, "m")
+
+        participants = []
+        while earliest > max_past_time and len(participants) < num_particip:
+            msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
+
+            timestamp = msgs_chunk[0]["timestamp"]
+            earliest = datetime.datetime.fromtimestamp(timestamp).now()
+
+            anchor = msgs_chunk[0]["id"]
+            for msg in reversed(msgs_chunk):
+                pinged_particip = "".join([self.PING_INI,
+                                           msg["sender_full_name"],
+                                           self.PING_END])
+
+                if pinged_particip not in participants and \
+                        not self._bot_msg(msg) and \
+                        not issuer == msg["sender_full_name"]:
+                    participants.append(pinged_particip)
+
+                if len(participants) >= num_particip:
+                    break
+
+            # stop asking for messages if less than chunk size were retrieved
+            if not msgs_chunk or len(msgs_chunk) < self.CHUNK_SIZE:
+                break
+
+        return participants
 
     @classmethod
     def parse_time(cls, msg_content):
@@ -84,18 +138,38 @@ class Bot():
             # get num and time frequency
             time_str = msg_content_elems[1].lower().strip()
             result = re.match("([0-9]+)([a-z]+)", time_str)
-            num = int(result.groups()[0])
-            freq = result.groups()[1]
 
-            delta = cls._get_timedelta(num, freq)
+            if result:
+                num = int(result.groups()[0])
+                freq = result.groups()[1]
 
-            if delta > delta_default:
-                delta = delta_default
+                delta = cls._get_timedelta(num, freq)
 
-        now = datetime.datetime.now()
-        time = now - delta
+                if delta > delta_default:
+                    delta = delta_default
+
+                now = datetime.datetime.now()
+                time = now - delta
+
+            else:
+                time = None
 
         return time
+
+    @classmethod
+    def parse_num_participants(cls, msg_content):
+        msg_content_elems = msg_content.split()
+
+        if len(msg_content_elems) > 1:
+
+            # get number of participants
+            num_participants = None
+            try:
+                num_participants = int(msg_content_elems[1].lower().strip())
+            except Exception as inst:
+                print inst
+
+        return num_participants
 
     @classmethod
     def _get_timedelta(cls, num, freq):
@@ -202,8 +276,11 @@ class Bot():
     @classmethod
     def get_participants(cls, msgs, issuer):
         """Extract a list of participants from a bunch of messages."""
-        participants = ["@**" + msg["sender_full_name"] + "**" for msg in msgs
-                        if not cls._bot_msg(msg) and not issuer]
+        participants = [cls.PING_INI + msg["sender_full_name"] + cls.PING_END
+                        for msg in msgs
+                        if not cls._bot_msg(msg) and
+                        not issuer == msg["sender_full_name"]]
+
         return set(participants)
 
     @classmethod
@@ -215,6 +292,14 @@ class Bot():
         msg["content"] = "".join(["Pinging all participants from ",
                                   time.strftime(t_format), " to ",
                                   datetime.datetime.now().strftime(t_format),
+                                  "\n",
+                                  " ".join(participants)])
+
+        return msg
+
+    def ping_last_participants_msg(self, msg, participants):
+        msg["content"] = "".join(["Pinging last ",
+                                  str(len(participants)), " participants",
                                   "\n",
                                   " ".join(participants)])
 

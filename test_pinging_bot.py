@@ -65,11 +65,28 @@ class BotTest(unittest.TestCase):
 
         test_msgs = data["msgs"]
 
-        participants = self.new_bot.get_participants(test_msgs)
+        issuer = "my name"
+        participants = self.new_bot.get_participants(test_msgs, issuer)
         participants_exp = set(["@**Name1**", "@**Name2**", "@**Name3**",
                                 "@**Name4**", "@**Name5**"])
 
         self.assertEqual(participants, participants_exp)
+
+    def test_get_last_participants(self):
+
+        with open("test_msgs.json") as f:
+            data = json.load(f)
+        test_msgs = data["msgs"]
+
+        self.new_bot._get_msgs_chunk = Mock(return_value=test_msgs)
+        self.new_bot.__init__ = Mock(return_value=None)
+
+        stream = test_msgs[0]["display_recipient"]
+        subject = test_msgs[0]["subject"]
+
+        participants = self.new_bot().get_last_participants(2, stream, subject)
+
+        self.assertEqual(len(participants), 2)
 
     def test_bot_msg(self):
 
