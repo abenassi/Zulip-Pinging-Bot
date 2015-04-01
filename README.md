@@ -29,13 +29,6 @@ The **time_string** is composed with a number and a letter (only `d` (days), `w`
 
 The **participants_number** is just a number with no letters after or before it. I allows you to ping a number of recent participants instead of a time range. Although this also has the 3 months limit.
 
-TODO!!!! - New Representation
-24.0 - Exact time?
-24h = last 24 hours
-1d = today and yesterday
-0d = d = today = this day
-0w = w = this week
-
 *This will ping all participants in the subject for the last 3 months (the maximum)*
 `PingBot`
 
@@ -57,13 +50,20 @@ TODO!!!! - New Representation
 *This will ping the last 10 participants in the subject*
 `PingBot 10`
 
-**Going deeper**
+### How are time deltas understood by PingingBot
 
 Time deltas in PingBot are always considered as starting in the beginning of a unit. Calling "1d" at 6PM of today will ping all participants from 00:00:00 of yesterday until now. If you want to ping just today participants you can call "0d" or even better "today". Calling just a frequency is the same than calling it with 0 units ("0d" = "d"). If you actually want to ping participants from 6PM yesterday until now, you should call "24h". This works the same way with all the frequency units.
 
 `PingBot 0w` or `PingBot this week` or `PingBot w` *called Tuesday will ping participants from Monday of this week (1 day ago).*
 
 `PingBot 1w` *called Tuesday will ping participants from Monday of last week (8 days ago).*
+
+### Alternative ways to express a time string
+
+The following time strings are equivalent:
+
+`0d` = `d0` = `d` = `day` = `today` = `this day`
+`0w` = `w0` = `w` = `week` = `this week`
 
 
 ## Credits
