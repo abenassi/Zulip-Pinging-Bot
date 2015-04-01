@@ -1,6 +1,6 @@
 import unittest
 import nose
-import datetime
+import arrow
 import json
 import pinging_bot
 from mock import Mock
@@ -17,8 +17,10 @@ class BotTest(unittest.TestCase):
     def tearDownClass(cls):
         del cls.new_bot
 
-    @freeze_time(datetime.datetime(2015, 3, 18, 17, 10, 14))
+    # @freeze_time()
     def test_parse_time(self):
+
+        arrow.now = Mock(return_value=arrow.get(2015, 3, 18, 17, 10, 14))
 
         # get samples
         d5 = self.new_bot.parse_time("PingingBot 5d")
@@ -30,25 +32,35 @@ class BotTest(unittest.TestCase):
         h10 = self.new_bot.parse_time("PingingBot 10h")
         s300 = self.new_bot.parse_time("PingingBot 300s")
 
-        now = datetime.datetime.now()
+        today = self.new_bot.parse_time("PingingBot today")
+        d0 = self.new_bot.parse_time("PingingBot 0d")
+        just_d = self.new_bot.parse_time("PingingBot d")
+        just_w = self.new_bot.parse_time("PingingBot w")
+        w0 = self.new_bot.parse_time("PingingBot 0w")
+        this_week = self.new_bot.parse_time("PingingBot this week")
+
+        # get the anchor for expected results
+        now = arrow.now()
+        assert now == arrow.get(2015, 3, 18, 17, 10, 14)
 
         # calculate expected results
-        d5_exp = now - datetime.timedelta(days=5)
-        w5_exp = now - datetime.timedelta(weeks=5)
+        d5_exp = now.replace(days=-5).floor("day")
+        w5_exp = now.replace(weeks=-5).floor("week")
+        m2_exp = now.replace(months=-2).floor("month")
+        m7_exp = now.replace(months=-3).floor("month")
+        non_valid_exp = now.replace(months=-3).floor("month")
+        h10_exp = now.replace(hours=-10).floor("hour")
+        min10_exp = now.replace(minutes=-10).floor("minute")
+        s300_exp = now.replace(seconds=-300).floor("second")
 
-        days = self.new_bot._months_to_days(2)
-        m2_exp = now - datetime.timedelta(days=days)
+        today_exp = now.replace(days=0).floor("day")
+        d0_exp = now.replace(days=0).floor("day")
+        just_d_exp = now.replace(days=0).floor("day")
+        just_w_exp = now.replace(weeks=0).floor("week")
+        w0_exp = now.replace(weeks=0).floor("week")
+        this_week_exp = now.replace(weeks=0).floor("week")
 
-        days = self.new_bot._months_to_days(3)
-        m7_exp = now - datetime.timedelta(days=days)
-
-        days = self.new_bot._months_to_days(3)
-        non_valid_exp = now - datetime.timedelta(days=days)
-
-        h10_exp = now - datetime.timedelta(hours=10)
-        min10_exp = now - datetime.timedelta(minutes=10)
-        s300_exp = now - datetime.timedelta(seconds=300)
-
+        # assertions
         self.assertEqual(d5, d5_exp)
         self.assertEqual(w5, w5_exp)
         self.assertEqual(m2, m2_exp)
@@ -57,6 +69,13 @@ class BotTest(unittest.TestCase):
         self.assertEqual(min10, min10_exp)
         self.assertEqual(h10, h10_exp)
         self.assertEqual(s300, s300_exp)
+
+        self.assertEqual(today, today_exp)
+        self.assertEqual(d0, d0_exp)
+        self.assertEqual(just_d, just_d_exp)
+        self.assertEqual(just_w, just_w_exp)
+        self.assertEqual(w0, w0_exp)
+        self.assertEqual(this_week, this_week_exp)
 
     def test_get_participants(self):
 
@@ -67,8 +86,8 @@ class BotTest(unittest.TestCase):
 
         issuer = "my name"
         participants = self.new_bot.get_participants(test_msgs, issuer)
-        participants_exp = set(["@**Name1**", "@**Name2**", "@**Name3**",
-                                "@**Name4**", "@**Name5**"])
+        participants_exp = ["@**Name1**", "@**Name2**", "@**Name3**",
+                            "@**Name4**", "@**Name5**"]
 
         self.assertEqual(participants, participants_exp)
 
@@ -83,8 +102,10 @@ class BotTest(unittest.TestCase):
 
         stream = test_msgs[0]["display_recipient"]
         subject = test_msgs[0]["subject"]
+        issuer = "Name1"
 
-        participants = self.new_bot().get_last_participants(2, stream, subject)
+        participants = self.new_bot().get_last_participants(2, stream, subject,
+                                                            issuer)
 
         self.assertEqual(len(participants), 2)
 

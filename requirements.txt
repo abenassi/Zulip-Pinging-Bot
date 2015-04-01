@@ -1,3 +1,5 @@
 zulip
 requests
 freezegun
+parsley
+arrow

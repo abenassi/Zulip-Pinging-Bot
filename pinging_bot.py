@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import zulip
 import requests
-import re
-import datetime
-from calendar import monthrange
 import os
+import parsley
+import arrow
+import json
 
 
 class Bot():
@@ -87,34 +90,56 @@ class Bot():
                 ping_msg = self.ping_last_participants_msg(msg, participants)
 
             else:
-                return
+                time = self._get_shifted_time(3, "m")
+
+                msgs = self.get_msgs(
+                    time, msg["display_recipient"], msg["subject"])
+
+                participants = self.get_participants(
+                    msgs, msg["sender_full_name"])
+
+                ping_msg = self.ping_participants_msg(msg, participants, time)
 
             ping_msg["to"] = ping_msg["display_recipient"]
 
             self.client.send_message(ping_msg)
 
     def get_last_participants(self, num_particip, stream, subject, issuer):
+        """Get last participants in a stream-subject.
+
+        Args:
+            num_particip: Number of participants to be pinged.
+            stream: Zulip stream of the participants.
+            subject: Subject of the participants.
+            issuer: Zulip participant that is pinging the others.
+        """
 
         anchor = 18446744073709551615
-        earliest = datetime.datetime.now()
-        max_past_time = datetime.datetime.now() - self._get_timedelta(3, "m")
+        earliest = arrow.now()
+        max_past_time = arrow.now().replace(months=-3).floor("month")
 
         participants = []
         while earliest > max_past_time and len(participants) < num_particip:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
             timestamp = msgs_chunk[0]["timestamp"]
-            earliest = datetime.datetime.fromtimestamp(timestamp).now()
+            earliest = arrow.get(timestamp)
 
             anchor = msgs_chunk[0]["id"]
+
+            # reversed msgs_chunk start from earliest to latest
             for msg in reversed(msgs_chunk):
                 pinged_particip = "".join([self.PING_INI,
                                            msg["sender_full_name"],
                                            self.PING_END])
 
-                if pinged_particip not in participants and \
-                        not self._bot_msg(msg) and \
-                        not issuer == msg["sender_full_name"]:
+                already = pinged_particip in participants
+                is_bot = self._bot_msg(msg)
+                same_person = issuer == msg["sender_full_name"]
+                correct_subj = msg["subject"] == subject
+
+                if (not already and not is_bot and not same_person and
+                        correct_subj):
                     participants.append(pinged_particip)
 
                 if len(participants) >= num_particip:
@@ -128,33 +153,40 @@ class Bot():
 
     @classmethod
     def parse_time(cls, msg_content):
-        msg_content_elems = msg_content.split()
 
-        delta_default = cls._get_timedelta(3, "m")
-        delta = delta_default
+        msg_split = msg_content.lower().split()
 
-        if len(msg_content_elems) > 1:
+        if len(msg_split) > 1:
 
-            # get num and time frequency
-            time_str = msg_content_elems[1].lower().strip()
-            result = re.match("([0-9]+)([a-z]+)", time_str)
+            # taking out the bot key word
+            time_str = " ".join(msg_split[1:]).strip()
 
-            if result:
-                num = int(result.groups()[0])
-                freq = result.groups()[1]
+            grammar = parsley.makeGrammar("""
+                today = 'today' ws -> (0, "d")
+                this = 'this' ws <letter+>:freq -> (0, freq[0])
 
-                delta = cls._get_timedelta(num, freq)
+                min = 'min' letter* ws <digit*>:num -> (int(num or 0), "min")
+                min2 = <digit*>:num ws 'min' letter* -> (int(num or 0), "min")
 
-                if delta > delta_default:
-                    delta = delta_default
+                t1 = <digit*>:num ws <letter+>:freq -> (int(num or 0), freq[0])
+                t2 = <letter+>:freq ws <digit*>:num -> (int(num or 0), freq[0])
 
-                now = datetime.datetime.now()
-                time = now - delta
+                time_params = today | this | min | min2 | t1 | t2
+                """, {})
 
-            else:
-                time = None
+            # try to match for time first
+            try:
+                num, freq = grammar(time_str).time_params()
+                shifted_time = cls._get_shifted_time(num, freq)
 
-        return time
+            except Exception as inst:
+                print inst
+                shifted_time = None
+
+        else:
+            shifted_time = None
+
+        return shifted_time
 
     @classmethod
     def parse_num_participants(cls, msg_content):
@@ -169,73 +201,68 @@ class Bot():
             except Exception as inst:
                 print inst
 
+        else:
+            num_participants = 0
+
         return num_participants
 
     @classmethod
-    def _get_timedelta(cls, num, freq):
+    def _get_shifted_time(cls, num, freq):
         """Create a timedelta from a number and a frequency."""
 
-        delta = datetime.timedelta(days=cls._months_to_days(3))
+        # get anchors
+        now = arrow.now()
+        default_shifted_time = now.replace(months=-3).floor("month")
 
-        freq_to_delta = {"s": "seconds",
-                         "min": "minutes",
-                         "h": "hours",
-                         "d": "days",
-                         "w": "weeks",
-                         "m": "months"}
+        freqs = {"s":  "second",
+                 "min":  "minute",
+                 "h":  "hour",
+                 "d":  "day",
+                 "w":  "week",
+                 "m":  "month"}
 
-        if freq in freq_to_delta:
+        # calculate shifted time if frequency is valid
+        if freq in freqs:
+            replace = {freqs[freq] + "s": -num}
+            shifted_time = now.replace(**replace).floor(freqs[freq])
+        else:
+            shifted_time = None
 
-            if freq != "m":
-                delta_key = freq_to_delta[freq]
-                delta_dict = {delta_key: num}
+        # use default if invalid frequency or shifted time is too far in past
+        if not shifted_time or shifted_time < default_shifted_time:
+            shifted_time = default_shifted_time
 
-            else:
-                eq_days = cls._months_to_days(num)
-                delta_dict = {"days": eq_days}
-
-            delta = datetime.timedelta(**delta_dict)
-
-        return delta
-
-    @classmethod
-    def _months_to_days(cls, num):
-        """Convert a number of months in equivalent days (last 3 months)."""
-
-        today = datetime.datetime.now()
-        year = today.year
-        month = today.month
-        days = 0
-
-        for i_month in xrange(num):
-            if month == 1:
-                month = 12
-                year -= 1
-            else:
-                month -= 1
-
-            days += monthrange(year, month)[1]
-
-        return days
+        return shifted_time
 
     def get_msgs(self, time, stream, subject):
+        """Get all messages from a stream-subject after a certain "time".
+
+        Args:
+            time: Time from when collected messages will start.
+            stream: Name of the zulip stream where to collect messages.
+            subject: Name of the subject where to collect messages.
+        """
 
         anchor = 18446744073709551615
-        earliest = datetime.datetime.now()
+        earliest = arrow.now()
+        # print time
 
         messages = []
         while earliest > time:
             msgs_chunk = self._get_msgs_chunk(self.CHUNK_SIZE, stream, anchor)
 
             timestamp = msgs_chunk[0]["timestamp"]
-            earliest = datetime.datetime.fromtimestamp(timestamp).now()
+            earliest = arrow.get(timestamp)
 
             anchor = msgs_chunk[0]["id"]
             msgs = []
             for msg in msgs_chunk:
-                msg_time = datetime.datetime.fromtimestamp(
-                    msg["timestamp"]).now()
+                msg_time = arrow.get(msg["timestamp"])
+
+                if msg["subject"] == subject:
+                    print msg["sender_full_name"].encode("utf-8", "ignore")
                 if msg["subject"] == subject and msg_time > time:
+                    print "appending msg"
                     msgs.append(msg)
 
             messages.extend(msgs)
@@ -276,12 +303,31 @@ class Bot():
     @classmethod
     def get_participants(cls, msgs, issuer):
         """Extract a list of participants from a bunch of messages."""
-        participants = [cls.PING_INI + msg["sender_full_name"] + cls.PING_END
-                        for msg in msgs
-                        if not cls._bot_msg(msg) and
-                        not issuer == msg["sender_full_name"]]
 
-        return set(participants)
+        json.dump({"messages": msgs}, open("msg.json", "wb"))
+
+        participants = []
+        # print "issuer", issuer.encode("utf-8", "ignore")
+        for msg in msgs:
+            pinged_particip = "".join([cls.PING_INI,
+                                       msg["sender_full_name"],
+                                       cls.PING_END])
+
+            # print not issuer == msg["sender_full_name"]
+
+            bot_msg = cls._bot_msg(msg)
+            autoping = issuer == unicode(msg["sender_full_name"])
+            already_catched = pinged_particip not in participants
+
+            # print issuer.encode("utf-8", "ignore"), msg["sender_full_name"].encode("utf-8", "ignore")
+            # print "bot_msg", bot_msg, "autoping", autoping,
+            # "already_catched", already_catched
+            if not bot_msg and not autoping and already_catched:
+
+                # print "appending", participant
+                participants.append(pinged_particip)
+
+        return participants
 
     @classmethod
     def _bot_msg(cls, msg):
@@ -290,8 +336,9 @@ class Bot():
     def ping_participants_msg(self, msg, participants, time):
         t_format = "%m/%d/%y %H:%M:%S"
         msg["content"] = "".join(["Pinging all participants from ",
+                                  time.humanize(), " (",
                                   time.strftime(t_format), " to ",
-                                  datetime.datetime.now().strftime(t_format),
+                                  arrow.now().strftime(t_format), ")"
                                   "\n",
                                   " ".join(participants)])
 
