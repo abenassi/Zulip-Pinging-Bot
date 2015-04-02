@@ -410,7 +410,7 @@ class PingingBot():
         if issuer_msg:
             issuer = msg["sender_full_name"]
             msg["content"] += "".join(["\n**", issuer,
-                                       "** says: ",
+                                       ":** ",
                                        issuer_msg])
 
         return msg
