@@ -211,6 +211,12 @@ class PingingBot():
             try:
                 time, msg = grammar(time_str).message()
                 num, freq = time
+
+                # convert more than 3 "m" in "min"
+                # it will be assumed that user refers to minutes, not months
+                if num > 3 and freq == "m":
+                    freq = "min"
+
                 shifted_time = cls._get_shifted_time(num, freq)
 
             except Exception as inst:

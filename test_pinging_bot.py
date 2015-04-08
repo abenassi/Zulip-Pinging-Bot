@@ -4,14 +4,13 @@ import arrow
 import json
 import pinging_bot
 from mock import Mock
-from freezegun import freeze_time
 
 
 class BotTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.new_bot = pinging_bot.Bot
+        cls.new_bot = pinging_bot.PingingBot
 
     @classmethod
     def tearDownClass(cls):
@@ -49,7 +48,7 @@ class BotTest(unittest.TestCase):
         d5_exp = now.replace(days=-5).floor("day")
         w5_exp = now.replace(weeks=-5).floor("week")
         m2_exp = now.replace(months=-2).floor("month")
-        m7_exp = now.replace(months=-3).floor("month")
+        m7_exp = now.replace(minutes=-7).floor("minute")
         non_valid_exp = now.replace(months=-3).floor("month")
         h10_exp = now.replace(hours=-10).floor("hour")
         min10_exp = now.replace(minutes=-10).floor("minute")

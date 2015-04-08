@@ -1,3 +1,3 @@
 Pinging all participants from 3 months ago (01/01/15 00:00:00 to 03/18/15 17:10:14)
 @**Name1** @**Name2** @**Name3** @**Name4** @**Name5**
-**me** says: I'm sending a message to pinged participants!
+**me:** I'm sending a message to pinged participants!
